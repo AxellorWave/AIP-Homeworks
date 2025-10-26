@@ -1,14 +1,13 @@
 #include <iostream>
+#include <limits>
 
 using u_t = unsigned;
 u_t get_progression_sum(u_t b, u_t q, u_t n);
 u_t add(u_t a, u_t b);
-u_t isAddErr(u_t res, u_t a, u_t b);
-u_t sub(u_t a, u_t b);
-u_t isSubErr(u_t res, u_t a, u_t b);
+bool isAddErr(u_t res, u_t a, u_t b);
 u_t mp(u_t a, u_t b);
+bool isMpErr(u_t res, u_t a, u_t b);
 u_t max_u();
-u_t min_u();
 
 int main()
 {
@@ -24,4 +23,35 @@ u_t get_progression_sum(u_t b, u_t q, u_t n)
         n--;
     }
     return sum;
+}
+
+u_t max_u()
+{
+    return std::numeric_limits<unsigned>::max();
+}
+
+u_t add(u_t a, u_t b)
+{
+    if (a > max_u() - b){
+        return 0;
+    }
+    return a+b;
+}
+
+bool isSumErr(u_t res, u_t a, u_t b)
+{
+    return !res && (a || b);
+}
+
+u_t mp(u_t a, u_t b)
+{
+    if (max_u() / a < b){
+        return 0;
+    }
+    return a*b;
+}
+
+bool isMpErr(u_t res, u_t a, u_t b)
+{
+    return !res && a && b;
 }
