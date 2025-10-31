@@ -14,7 +14,7 @@ ll_t mp(ll_t a, ll_t b);
 
 int main()
 {
-  ll_t a, last_lcm, sum_sqr;
+  ll_t a = 0, last_lcm = 0, sum_sqr = 0;
   bool first = true;
   while (std::cin >> a) {
     try {
