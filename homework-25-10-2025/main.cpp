@@ -18,6 +18,7 @@ int main()
   bool first = true;
   while (std::cin >> a) {
     try {
+      a = abs(a);
       if (!first) { 
         last_lcm = lcm(last_lcm, a);
       } else {
