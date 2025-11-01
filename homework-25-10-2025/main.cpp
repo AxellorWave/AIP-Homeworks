@@ -79,12 +79,12 @@ ll_t abs(ll_t a)
 
 ll_t lcm(ll_t a, ll_t b)
 {           
-  return (mp(a, b)) / gcd(a,b);
+  return mp(a, b) / gcd(a,b);
 }
 
 ll_t add(ll_t a, ll_t b)
 {
-  if (a < max_ll() - b){
+  if (a < max_ll() - b) {
     return a+b;
   }
   throw
@@ -93,7 +93,7 @@ ll_t add(ll_t a, ll_t b)
 
 ll_t mp(ll_t a, ll_t b)
 {
-  if (max_ll() / a > b){
+  if (max_ll() / a > b) { 
     return a*b;
   }
   throw
