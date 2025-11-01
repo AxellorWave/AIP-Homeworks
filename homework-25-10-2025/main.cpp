@@ -14,17 +14,15 @@ ll_t mp(ll_t a, ll_t b);
 
 int main()
 {
-  ll_t a = 0, last_lcm = 0, sum_sqr = 0;
-  bool first = true;
+  ll_t a = 0, last_lcm = 1, sum_sqr = 0;
   while (std::cin >> a) {
     try {
-      a = abs(a);
-      if (!first) { 
-        last_lcm = lcm(last_lcm, a);
-      } else {
-        last_lcm = a;
-        first = false;
+      if (a == 0) {
+        std::cerr << "Undefind lcm with 0";
+        return 2;
       }
+      a = abs(a);
+      last_lcm = lcm(last_lcm, a);
       sum_sqr = add(sum_sqr, mp(a, a));
     } catch (const std::overflow_error &e){
       std::cerr << e.what() << "\n";
@@ -33,7 +31,12 @@ int main()
   }
 
   if (std::cin.eof()) {
-    std::cout << last_lcm << "\n" << sum_sqr << "\n";
+    if (last_lcm == 1 && a == 0) {
+      std::cerr << "Entered 0 numbers";
+      return 1;
+    }
+    std::cout << "LCM: " << last_lcm << "\n" ;
+    std::cout << "SUM OF SQR: "<< sum_sqr << "\n";
   } else if (std::cin.fail()) {
     std::cerr << "Brooo, it is FAIL!!!\n";
     return 1;
