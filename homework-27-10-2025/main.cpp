@@ -27,12 +27,7 @@ int main()
       return 1;
     }
   }
-
-  sort(arr, size);
-  for (size_t i = 0; i < size; ++i) {
-    std::cout << arr[i] << " ";
-  }
-  std::cout << "\n";
+  std::cout << "median = " << median(arr, size) << "\n";
   delete[] arr;
 
 }
@@ -52,7 +47,11 @@ void sort(ll_t * arr, size_t size)
   }
 }
 
-// ll_t median(ll_t * arr, size_t size)
-// {
-
-// }
+ll_t median(ll_t * arr, size_t size)
+{
+  sort(arr, size);
+  if (size % 2 == 0) {
+    return (arr[(size / 2) - 1] + arr[(size / 2)]) / 2.0;
+  }
+  return arr[(size - 1) / 2];
+}
