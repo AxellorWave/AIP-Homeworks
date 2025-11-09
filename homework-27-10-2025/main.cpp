@@ -1,8 +1,10 @@
 #include <iostream>
+#include <limits>
 
 using ll_t = long long int;
 void sort(ll_t * arr, size_t size);
 ll_t median(ll_t * arr, size_t size);
+ll_t add(ll_t a, ll_t b);
 
 int main()
 {
@@ -32,6 +34,27 @@ int main()
 
 }
 
+ll_t min_ll()
+{
+  return std::numeric_limits<ll_t>::min();
+}
+
+ll_t max_ll()
+{
+  return std::numeric_limits<ll_t>::max();
+}
+
+ll_t add(ll_t a, ll_t b)
+{
+  if (a > 0 && b > 0 && a > max_ll() - b) {
+    throw std::overflow_error("Overflow add");
+  }
+  if (a < 0 && b < 0 && a < min_ll() - b) {
+    throw std::underflow_error("Overflow add");
+  }
+  return a + b;
+}
+
 void sort(ll_t * arr, size_t size)
 {
   for (size_t i = 0; i < size; ++i) {
@@ -51,7 +74,7 @@ ll_t median(ll_t * arr, size_t size)
 {
   sort(arr, size);
   if (size % 2 == 0) {
-    return (arr[(size / 2) - 1] + arr[(size / 2)]) / 2.0;
+    return (add(arr[(size / 2) - 1], arr[(size / 2)])) / 2;
   }
   return arr[(size - 1) / 2];
 }
