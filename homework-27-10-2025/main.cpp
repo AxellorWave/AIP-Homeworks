@@ -1,6 +1,8 @@
 #include <iostream>
 
 using ll_t = long long int;
+void sort(ll_t * arr, size_t size);
+ll_t median(ll_t * arr, size_t size);
 
 int main()
 {
@@ -26,7 +28,7 @@ int main()
     }
   }
 
-
+  sort(arr, size);
   for (size_t i = 0; i < size; ++i) {
     std::cout << arr[i] << " ";
   }
@@ -34,3 +36,23 @@ int main()
   delete[] arr;
 
 }
+
+void sort(ll_t * arr, size_t size)
+{
+  for (size_t i = 0; i < size; ++i) {
+    size_t min_index = i;
+    for (size_t j = i+1; j < size; ++j) {
+      if (arr[j] < arr[min_index]) {
+        min_index = j;
+      }
+    ll_t temp = arr[min_index];
+    arr[min_index] = arr[i];
+    arr[i] = temp;
+    }
+  }
+}
+
+// ll_t median(ll_t * arr, size_t size)
+// {
+
+// }
