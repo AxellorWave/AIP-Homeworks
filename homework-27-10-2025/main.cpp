@@ -21,6 +21,7 @@ int main()
     std::cin >> arr[i];
     if (!std::cin) {
       std::cerr << "Bad enter\n";
+      delete[] arr;
       return 1;
     }
   }
