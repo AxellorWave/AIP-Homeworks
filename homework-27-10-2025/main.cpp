@@ -29,9 +29,18 @@ int main()
       return 1;
     }
   }
-  std::cout << "median = " << median(arr, size) << "\n";
+  try {
+    std::cout << "median = " << median(arr, size) << "\n";
+  } catch (const std::overflow_error& e) {
+    std::cerr << "Overflow: " << e.what() << "\n";
+    delete[] arr;
+    return 3;
+  } catch (const std::underflow_error& e) {
+    std::cerr << "Underflow: " << e.what() << "\n";
+    delete[] arr;
+    return 3;
+  }
   delete[] arr;
-
 }
 
 ll_t min_ll()
@@ -50,7 +59,7 @@ ll_t add(ll_t a, ll_t b)
     throw std::overflow_error("Overflow add");
   }
   if (a < 0 && b < 0 && a < min_ll() - b) {
-    throw std::underflow_error("Overflow add");
+    throw std::underflow_error("Underflow add");
   }
   return a + b;
 }
