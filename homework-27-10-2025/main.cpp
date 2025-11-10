@@ -1,10 +1,9 @@
 #include <iostream>
 #include <limits>
 
-using ll_t = long long int;
-void sort(ll_t * arr, size_t size);
-ll_t median(ll_t * arr, size_t size);
-ll_t add(ll_t a, ll_t b);
+void sort(int * arr, size_t size);
+double median(int * arr, size_t size);
+int add(int a, int b);
 
 int main()
 {
@@ -14,9 +13,9 @@ int main()
     std::cerr << "Bad enter\n";
     return 1;
   }
-  ll_t * arr = nullptr;
+  int * arr = nullptr;
   try {
-    arr = new ll_t[size];
+    arr = new int[size];
   } catch (std::bad_alloc & e) {
     std::cerr << "Bad Alloc\n";
     return 2; 
@@ -43,17 +42,17 @@ int main()
   delete[] arr;
 }
 
-ll_t min_ll()
+int min_ll()
 {
-  return std::numeric_limits<ll_t>::min();
+  return std::numeric_limits<int>::min();
 }
 
-ll_t max_ll()
+int max_ll()
 {
-  return std::numeric_limits<ll_t>::max();
+  return std::numeric_limits<int>::max();
 }
 
-ll_t add(ll_t a, ll_t b)
+int add(int a, int b)
 {
   if (a > 0 && b > 0 && a > max_ll() - b) {
     throw std::overflow_error("Overflow add");
@@ -64,7 +63,7 @@ ll_t add(ll_t a, ll_t b)
   return a + b;
 }
 
-void sort(ll_t * arr, size_t size)
+void sort(int * arr, size_t size)
 {
   for (size_t i = 0; i < size; ++i) {
     size_t min_index = i;
@@ -73,17 +72,17 @@ void sort(ll_t * arr, size_t size)
         min_index = j;
       }
     }
-    ll_t temp = arr[min_index];
+    int temp = arr[min_index];
     arr[min_index] = arr[i];
     arr[i] = temp;
   }
 }
 
-ll_t median(ll_t * arr, size_t size)
+double median(int * arr, size_t size)
 {
   sort(arr, size);
   if (size % 2 == 0) {
-    return (add(arr[(size / 2) - 1], arr[(size / 2)])) / 2;
+    return (add(arr[(size / 2) - 1], arr[(size / 2)])) / 2.0;
   }
   return arr[(size - 1) / 2];
 }
