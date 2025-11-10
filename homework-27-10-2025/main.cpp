@@ -72,10 +72,10 @@ void sort(ll_t * arr, size_t size)
       if (arr[j] < arr[min_index]) {
         min_index = j;
       }
+    }
     ll_t temp = arr[min_index];
     arr[min_index] = arr[i];
     arr[i] = temp;
-    }
   }
 }
 
