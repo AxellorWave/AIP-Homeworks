@@ -7,7 +7,7 @@ struct p_t
 
 const p_t & left_bot(const p_t & lhs, const p_t & rhs)
 {
-  if (lhs.x < rhs.x && lhs.y < rhs.y) {
+  if (lhs.x < rhs.x || (lhs.x == rhs.x && lhs.y < rhs.y)) {
     return lhs;
   }
   return rhs;
@@ -15,7 +15,7 @@ const p_t & left_bot(const p_t & lhs, const p_t & rhs)
 
 const p_t & right_top(const p_t & lhs, const p_t & rhs)
 {
-  if (lhs.x > rhs.x && lhs.y > rhs.y) {
+  if (lhs.x > rhs.x || (lhs.x == rhs.x && lhs.y > rhs.y)) {
     return lhs;
   }
   return rhs;
