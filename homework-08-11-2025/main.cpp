@@ -3,8 +3,8 @@
 #include <fstream>
 
 std::istream & createMatrix(std::istream & input, int * mtx, size_t rows, size_t cols);
-void addCol(int * matrix, size_t rows, size_t cols, size_t col_number, size_t value);
-void addRowAndCol(int * matrix, size_t rows, size_t cols, size_t row_number, size_t col_number);
+void addCol(int ** matrix, size_t & rows, size_t & cols, size_t col_number, size_t value);
+void addRow(int ** matrix, size_t & rows, size_t & cols, size_t row_number, size_t col_number);
 void printMatrix(int * matrix, size_t rows, size_t cols);
 
 
@@ -47,10 +47,21 @@ int main(int argc, char ** argv)
       return 3;
     }
     if (command == 1) {
-      addCol(matrix, rows, cols, arg_1, arg_2);
+      try {
+        addCol(& matrix, rows, cols, arg_1, arg_2);
+      } catch (const std::bad_alloc &) {
+        std::cerr << "Bad alloc\n";
+        return 2;
+      }
       printMatrix(matrix, rows, cols);
     } else if (command == 2) {
-      addRowAndCol(matrix, rows, cols, arg_1, arg_2);
+      try {
+      addRow(& matrix, rows, cols, arg_1, 0);
+      addCol(& matrix, rows, cols, arg_2, 0);
+      } catch (const std::bad_alloc &) {
+        std::cerr << "Bad alloc\n";
+        return 2;
+      }
       printMatrix(matrix, rows, cols);
     } else {
       std::cerr << "Command not found\n";
@@ -71,8 +82,48 @@ void printMatrix(int * matrix, size_t rows, size_t cols)
   for (size_t i = 0; i < rows; ++i) {
     std::cout << matrix[rows*i];
     for (size_t j = 1; j < cols; ++j) {
-      std::cout << matrix[rows * i + j];
+      std::cout << matrix[cols * i + j];
     }
     std::cout << "\n";
   }
 }
+
+void addCol(int ** matrix, size_t & rows, size_t & cols, size_t col_number, size_t value)
+{
+  ++cols;
+  int * new_matrix = new int[rows * (cols)];
+  int k = 0;
+  for (size_t i = 0; i < rows; ++i) {
+    for (size_t j = 0; j < cols; ++j) {
+      if (j == col_number) {
+        k = 1;
+        new_matrix[i * cols + j] = value;
+      } else {
+        new_matrix[i * cols + j] = (* matrix)[i * cols + j - k]; 
+      }
+    }
+    k = 0;
+  }
+  delete[] * matrix;
+  * matrix = new_matrix;
+}
+
+void addRow(int ** matrix, size_t & rows, size_t & cols, size_t row_number, size_t value)
+{
+  ++rows;
+  int * new_matrix = new int[rows * (cols)];
+  int k = 0;
+  for (size_t i = 0; i < rows; ++i) {
+    for (size_t j = 0; j < cols; ++j) {
+      if (i == row_number) {
+        k = 1;
+        new_matrix[i * cols + j] = value;
+      } else {
+        new_matrix[i * cols + j] = (* matrix)[(i - k) * cols + j]; 
+      }
+    }
+  }
+  delete[] * matrix;
+  * matrix = new_matrix;
+}
+
