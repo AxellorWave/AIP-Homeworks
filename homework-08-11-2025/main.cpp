@@ -50,26 +50,41 @@ int main(int argc, char ** argv)
       return 3;
     }
     if (command == 1) {
+      if (arg_1 > rows || arg_1 < 0) {
+        std::cerr << "Bad enter row";
+        return 3;
+      } 
       try {
         addRow(& matrix, rows, cols, arg_1, arg_2);
       } catch (const std::bad_alloc &) {
+        delete[] matrix;
         std::cerr << "Bad alloc\n";
         return 2;
       }
       printMatrix(matrix, rows, cols);
     } else if (command == 2) {
+      if (arg_1 > cols || arg_1 < 0) {
+        std::cerr << "Bad enter col";
+        return 3;
+      } 
       try {
         addCol(& matrix, rows, cols, arg_1, arg_2);
       } catch (const std::bad_alloc &) {
+        delete[] matrix;
         std::cerr << "Bad alloc\n";
         return 2;
       }
       printMatrix(matrix, rows, cols);
     } else if (command == 3) {
+      if (arg_1 > rows || arg_1 < 0 || arg_2 > cols || arg_2 < 0) {
+        std::cerr << "Bad enter col or row";
+        return 3;
+      } 
       try {
       addRow(& matrix, rows, cols, arg_1, 0);
       addCol(& matrix, rows, cols, arg_2, 0);
       } catch (const std::bad_alloc &) {
+        delete[] matrix;
         std::cerr << "Bad alloc\n";
         return 2;
       }
