@@ -1,10 +1,9 @@
 #include <iostream>
-#include <cctype>
 #include <fstream>
 
 std::istream & createMatrix(std::istream & input, int * mtx, size_t rows, size_t cols);
 void addCol(int ** matrix, size_t & rows, size_t & cols, size_t col_number, size_t value);
-void addRow(int ** matrix, size_t & rows, size_t & cols, size_t row_number, size_t col_number);
+void addRow(int ** matrix, size_t & rows, size_t & cols, size_t row_number, size_t value);
 void printMatrix(int * matrix, size_t rows, size_t cols);
 
 
