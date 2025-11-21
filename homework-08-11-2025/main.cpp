@@ -69,11 +69,9 @@ int main(int argc, char ** argv)
 void printMatrix(int * matrix, size_t rows, size_t cols)
 {
   for (size_t i = 0; i < rows; ++i) {
-    for (size_t j = 0; j < cols; ++j) {
+    std::cout << matrix[rows*i];
+    for (size_t j = 1; j < cols; ++j) {
       std::cout << matrix[rows * i + j];
-      if (j != rows - 1) {
-        std::cout << " ";
-      }
     }
     std::cout << "\n";
   }
