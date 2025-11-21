@@ -10,11 +10,11 @@ void printMatrix(int * matrix, size_t rows, size_t cols);
 
 int main(int argc, char ** argv)
 {
-  if (argc < 1) {
+  if (argc < 2) {
     std::cerr << "Not enough arguments\n";
     return 3;
   }
-  if (argc > 1) {
+  if (argc > 2) {
     std::cerr << "Too many arguments\n";
     return 3;
   }
@@ -34,10 +34,13 @@ int main(int argc, char ** argv)
     std::cerr << "Bad alloc\n";
     return 2;
   }
-
   createMatrix(input, matrix, rows, cols);
+  if (!input) {
+    delete[] matrix;
+    std::cerr << "Bad enter from file\n";
+    return 1;
+  }
   input.close();
-
   size_t command = 0, arg_1 = 0, arg_2 = 0;
   while (std::cin >> command) {
     std::cin >> arg_1 >> arg_2;
@@ -48,13 +51,21 @@ int main(int argc, char ** argv)
     }
     if (command == 1) {
       try {
-        addCol(& matrix, rows, cols, arg_1, arg_2);
+        addRow(& matrix, rows, cols, arg_1, arg_2);
       } catch (const std::bad_alloc &) {
         std::cerr << "Bad alloc\n";
         return 2;
       }
       printMatrix(matrix, rows, cols);
     } else if (command == 2) {
+      try {
+        addCol(& matrix, rows, cols, arg_1, arg_2);
+      } catch (const std::bad_alloc &) {
+        std::cerr << "Bad alloc\n";
+        return 2;
+      }
+      printMatrix(matrix, rows, cols);
+    } else if (command == 3) {
       try {
       addRow(& matrix, rows, cols, arg_1, 0);
       addCol(& matrix, rows, cols, arg_2, 0);
@@ -65,7 +76,6 @@ int main(int argc, char ** argv)
       printMatrix(matrix, rows, cols);
     } else {
       std::cerr << "Command not found\n";
-      return 3;
     }
   }
 
@@ -77,12 +87,20 @@ int main(int argc, char ** argv)
   std::cout << "Enter commans successfully end\n";
 }
 
+std::istream & createMatrix(std::istream & input, int * mtx, size_t rows, size_t cols) 
+{
+  for (size_t i = 0; i < rows * cols; ++i) {
+    input >> mtx[i];
+  } 
+  return input;
+}
+
 void printMatrix(int * matrix, size_t rows, size_t cols)
 {
   for (size_t i = 0; i < rows; ++i) {
-    std::cout << matrix[rows*i];
+    std::cout << matrix[cols*i];
     for (size_t j = 1; j < cols; ++j) {
-      std::cout << matrix[cols * i + j];
+      std::cout << " " << matrix[cols * i + j];
     }
     std::cout << "\n";
   }
@@ -96,13 +114,12 @@ void addCol(int ** matrix, size_t & rows, size_t & cols, size_t col_number, size
   for (size_t i = 0; i < rows; ++i) {
     for (size_t j = 0; j < cols; ++j) {
       if (j == col_number) {
-        k = 1;
+        ++k;
         new_matrix[i * cols + j] = value;
       } else {
         new_matrix[i * cols + j] = (* matrix)[i * cols + j - k]; 
       }
     }
-    k = 0;
   }
   delete[] * matrix;
   * matrix = new_matrix;
