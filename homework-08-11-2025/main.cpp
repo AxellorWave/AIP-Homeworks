@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 
-std::istream & createMatrix(std::istream & input, int * mtx, size_t rows, size_t cols);
+std::istream & inputMatrix(std::istream & input, int * mtx, size_t rows, size_t cols);
 void addCol(int ** matrix, size_t & rows, size_t & cols, size_t col_number, size_t value);
 void addRow(int ** matrix, size_t & rows, size_t & cols, size_t row_number, size_t value);
 void printMatrix(int * matrix, size_t rows, size_t cols);
@@ -33,7 +33,7 @@ int main(int argc, char ** argv)
     std::cerr << "Bad alloc\n";
     return 2;
   }
-  createMatrix(input, matrix, rows, cols);
+  inputMatrix(input, matrix, rows, cols);
   if (!input) {
     delete[] matrix;
     std::cerr << "Bad enter from file\n";
@@ -51,6 +51,7 @@ int main(int argc, char ** argv)
     if (command == 1) {
       if (arg_1 > rows || arg_1 < 0) {
         std::cerr << "Bad enter row";
+        delete[] matrix;
         return 3;
       } 
       try {
@@ -64,6 +65,7 @@ int main(int argc, char ** argv)
     } else if (command == 2) {
       if (arg_1 > cols || arg_1 < 0) {
         std::cerr << "Bad enter col";
+        delete[] matrix;
         return 3;
       } 
       try {
@@ -77,6 +79,7 @@ int main(int argc, char ** argv)
     } else if (command == 3) {
       if (arg_1 > rows || arg_1 < 0 || arg_2 > cols || arg_2 < 0) {
         std::cerr << "Bad enter col or row";
+        delete[] matrix;
         return 3;
       } 
       try {
@@ -101,7 +104,7 @@ int main(int argc, char ** argv)
   std::cout << "Enter commans successfully end\n";
 }
 
-std::istream & createMatrix(std::istream & input, int * mtx, size_t rows, size_t cols) 
+std::istream & inputMatrix(std::istream & input, int * mtx, size_t rows, size_t cols) 
 {
   for (size_t i = 0; i < rows * cols; ++i) {
     input >> mtx[i];
@@ -123,7 +126,7 @@ void printMatrix(int * matrix, size_t rows, size_t cols)
 void addCol(int ** matrix, size_t & rows, size_t & cols, size_t col_number, size_t value)
 {
   ++cols;
-  int * new_matrix = new int[rows * (cols)];
+  int * new_matrix = new int[rows * cols];
   int k = 0;
   for (size_t i = 0; i < rows; ++i) {
     for (size_t j = 0; j < cols; ++j) {
@@ -142,7 +145,7 @@ void addCol(int ** matrix, size_t & rows, size_t & cols, size_t col_number, size
 void addRow(int ** matrix, size_t & rows, size_t & cols, size_t row_number, size_t value)
 {
   ++rows;
-  int * new_matrix = new int[rows * (cols)];
+  int * new_matrix = new int[rows * cols];
   int k = 0;
   for (size_t i = 0; i < rows; ++i) {
     for (size_t j = 0; j < cols; ++j) {
