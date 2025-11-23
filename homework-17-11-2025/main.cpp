@@ -3,6 +3,7 @@
 struct Point3d 
 {
   Point3d(int x, int y, int z);
+  Point3d();
   ~Point3d();
   Point3d(const Point3d & c);
   Point3d(Point3d && c);
@@ -19,30 +20,26 @@ private:
   int * data;
 };
 
-Point3d::Point3d(int x, int y, int z)
-{
-  data = new int[3];
-  data[0] = x;
-  data[1] = y;
-  data[2] = z;
-}
+Point3d::Point3d(int x, int y, int z):
+  data(new int[3] {x, y, z})
+{}
+
+Point3d::Point3d():
+  data(new int[3] {0, 0, 0})
+{}
 
 Point3d::~Point3d()
 {
   delete[] data;
 }
 
-Point3d::Point3d(const Point3d & c)
-{
-  data = new int[3];
-  data[0] = c.data[0];
-  data[1] = c.data[1];
-  data[2] = c.data[2];
-}
+Point3d::Point3d(const Point3d & c):
+  data(new int[3] {c.data[0], c.data[2], c.data[2]})
+{}
 
-Point3d::Point3d(Point3d && c)
+Point3d::Point3d(Point3d && c):
+  data(c.data)
 {
-  data = c.data;
   c.data = nullptr;
 }
 
@@ -117,13 +114,19 @@ int main()
 {
   Point3d a{1, 2, 3};
   Point3d b{3, 2, 1};
-  std::cout << a.x() << " " << a.y() << " " << a.z() << "\n";
-  std::cout << b.x() << " " << b.y() << " " << b.z() << "\n";
+  Point3d t;
+  std::cout << "t: " << t.x() << " " << t.y() << " " << t.z() << "\n";
+  std::cout << "a: " << a.x() << " " << a.y() << " " << a.z() << "\n";
+  std::cout << "b: " << b.x() << " " << b.y() << " " << b.z() << "\n";
   a *= 2;
   b += a;
-  std::cout << a.x() << " " << a.y() << " " << a.z() << "\n";
-  std::cout << b.x() << " " << b.y() << " " << b.z() << "\n";
-  Point3d c = a;
+  std::cout << "a: " << a.x() << " " << a.y() << " " << a.z() << "\n";
+  std::cout << "b: " << b.x() << " " << b.y() << " " << b.z() << "\n";
+  Point3d c(b);
+  c = a;
   c -= b;
-  std::cout << c.x() << " " << c.y() << " " << c.z() << "\n";
+  std::cout << "c: " << c.x() << " " << c.y() << " " << c.z() << "\n";
+  std::cout << "c * a: " << (c * a) << "\n";
+  Point3d d = std::move(c);
+  std::cout << "d: " << d.x() << " " << d.y() << " " << d.z() << "\n";
 }
