@@ -34,7 +34,7 @@ Point3d::~Point3d()
 }
 
 Point3d::Point3d(const Point3d & c):
-  data(new int[3] {c.data[0], c.data[2], c.data[2]})
+  data(new int[3] {c.data[0], c.data[1], c.data[2]})
 {}
 
 Point3d::Point3d(Point3d && c):
