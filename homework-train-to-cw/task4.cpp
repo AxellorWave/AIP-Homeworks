@@ -8,11 +8,29 @@ struct Book {
   const char * author;
 };
 
+bool eq(const char * s1, const char * s2)
+{
+  if (s1 == s2) {
+    return true;
+  }
+  if (s1 == nullptr || s2 == nullptr) {
+    return false;
+  }
+  while (*s1 != '\0' && *s2 != '\0') {
+    if (*s1 != *s2) {
+      return false;
+    }
+    ++s1;
+    ++s2;
+  }
+  return false;
+}
+
 size_t authored_by(const Book * const * lib, size_t books, const char * author)
 {
   size_t res = 0;
   for (size_t i = 0; i < books; ++i) {
-    if (lib[i]->author == author) {
+    if (eq(lib[i]->author,author)) {
       ++res;
     }
   }
@@ -22,7 +40,7 @@ int main()
 {
   const Book books[] = {
     {"123", "aff"},
-    {"321", "adf"},
+    {"321", "aff"},
     {"111", "b"}
   };
   const Book* lib[] = {
@@ -32,7 +50,10 @@ int main()
   };
   size_t res = authored_by(lib, 3, "aff");
   std::cout << res << "\n";
+  std::cout << eq("hgfukf", "hgfukf");
 }
+
+
 
 // Задача 2.2.
 // Найти книгу с самым длинным названием. Вернуть указатель на неё
