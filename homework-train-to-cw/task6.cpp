@@ -21,11 +21,29 @@ struct Lib {
  * Функция должна вовзращать nullptr, если таких книг нет
  * Массивы с результатами должны располагаться во Free Store
  */
+const Book ** copy()
+
+void cut(const Book *** books, size_t k)
+{
+  const Book ** new_books = new const Book * [k];
+
+}
+
 const Book ** same_author(
   size_t& out, // размер массива-результата
   const Lib & db, // библиотека для поиска
   const Book* book // книга-образец (из неё нужен автор)
-);
+)
+{
+  size_t count = 0;
+  const char * author = book->author;
+  const Book ** res = new const Book * [db.books];
+  for (size_t i = 0; i < db.books; ++i) {
+    if (db.lib[i]->author == author) {
+      res[count++] = db.lib[i];
+    }
+  }
+}
 const Book ** same_author(
   size_t& out,
   const Lib * libs, // библиотеки
