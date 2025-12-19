@@ -45,6 +45,14 @@ void extend(const Book *** books, size_t k, const Book * const * new_books, size
   *books = res_books;
 }
 
+bool isCorrectAuthor(const Book * b1, const Book * b2)
+{
+  if (b1->author == b2->author) {
+    return true;
+  }
+  return false;
+}
+
 const Book ** same_author(
   size_t& out, // размер массива-результата
   const Lib & db, // библиотека для поиска
@@ -54,7 +62,7 @@ const Book ** same_author(
   size_t count = 0;
   const Book ** res = new const Book * [db.books];
   for (size_t i = 0; i < db.books; ++i) {
-    if (db.lib[i]->author == book->author) {
+    if (isCorrectAuthor(db.lib[i], book)) {
       res[count++] = db.lib[i];
     }
   }
@@ -158,10 +166,52 @@ const Book ** same_author(
  * Поиск нужно выполнить для одной библиотеки
     и для нескольких
  */
-size_t space_after_out(const Lib & db, const Book* book);
-size_t space_after_out(const Lib * libs, size_t l, const Book* book);
-size_t space_after_out(const Lib & db, const Book* const* match, size_t b);
-size_t space_after_out(const Lib * libs, size_t l, const Book* const* match, size_t b);
+bool isBookOut(size_t counts)
+{
+  if (counts == 0) {
+    return true;
+  }
+}
+
+size_t space_after_out(const Lib & db, const Book* book)
+{
+  size_t res = 0;
+  for (size_t i = 0; i < db.books; ++i) {
+    if (isCorrectAuthor(db.lib[i], book) && isBookOut(db.counts[i])) {
+      res += db.stocks[i];
+    }
+  }
+  return res;
+}
+
+size_t space_after_out(const Lib * libs, size_t l, const Book* book)
+{
+  size_t res = 0;
+  for (size_t i = 0; i < l; ++i) {
+    res += space_after_out(libs[i], book);
+  }
+}
+
+size_t space_after_out(const Lib & db, const Book* const* match, size_t b)
+{
+  {
+  size_t res = 0;
+  for (size_t i = 0; i < db.books; ++i) {
+    if (isCorrectAuthor(match, b, db.lib[i]) && isBookOut(db.counts[i])) {
+      res += db.stocks[i];
+    }
+  }
+  return res;
+}
+}
+
+size_t space_after_out(const Lib * libs, size_t l, const Book* const* match, size_t b)
+{
+  size_t res = 0;
+  for (size_t i = 0; i < l; ++i) {
+    res += space_after_out(libs[i], match, b);
+  }
+}
 
 int main()
 {}
