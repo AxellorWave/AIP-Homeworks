@@ -21,12 +21,28 @@ struct Lib {
  * Функция должна вовзращать nullptr, если таких книг нет
  * Массивы с результатами должны располагаться во Free Store
  */
-const Book ** copy()
+const Book ** copy(const Book * const * src, const Book ** dest, size_t k)
+{
+  for (size_t i = 0; i < k; ++i) {
+    dest[i] = src[i];
+  }
+  return dest + k;
+}
 
 void cut(const Book *** books, size_t k)
 {
   const Book ** new_books = new const Book * [k];
+  copy(*books, new_books, k);
+  delete[] * books;
+  *books = new_books;
+}
 
+void extend(const Book *** books, size_t k, const Book * const * new_books, size_t new_k)
+{
+  const Book ** res_books = new const Book * [k + new_k];
+  copy(new_books, copy(*books, res_books, k), new_k);
+  delete[] *books;
+  *books = res_books;
 }
 
 const Book ** same_author(
@@ -36,33 +52,100 @@ const Book ** same_author(
 )
 {
   size_t count = 0;
-  const char * author = book->author;
   const Book ** res = new const Book * [db.books];
   for (size_t i = 0; i < db.books; ++i) {
-    if (db.lib[i]->author == author) {
+    if (db.lib[i]->author == book->author) {
       res[count++] = db.lib[i];
     }
   }
+  if (count == 0) {
+    delete[] res;
+    return nullptr;
+  }
+  cut(&res, count);
+  out = count;
+  return res;
 }
+
 const Book ** same_author(
   size_t& out,
   const Lib * libs, // библиотеки
   size_t l, // количество библиотек
   const Book* book
-);
+)
+{
+  const Book ** res = new const Book * [1];
+  size_t count = 0;
+  for (size_t i = 0; i < l; ++i) {
+    size_t k = 0;
+    const Book ** new_books = same_author(k, libs[i], book);
+    extend(&res, count, new_books, k);
+    delete[] new_books;
+    count += k;
+  }
+  if (count == 0) {
+    delete[] res;
+    return nullptr;
+  }
+  return res;
+}
+
+bool isCorrectAuthor(const Book * const * match, size_t b, const Book * book)
+{
+  for (size_t i = 0; i < b; ++i) {
+    if (match[i]->author == book->author) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const Book ** same_author(
   size_t& out,
   const Lib & db,
   const Book* const* match, // книги-образцы
   size_t b // количество книг-образцов
-);
+)
+{
+  size_t count = 0;
+  const Book ** res = new const Book * [db.books];
+  for (size_t i = 0; i < db.books; ++i) {
+    if (isCorrectAuthor(match, b, db.lib[i])) {
+      res[count++] = db.lib[i];
+    }
+  }
+  if (count == 0) {
+    delete[] res;
+    return nullptr;
+  }
+  cut(&res, count);
+  out = count;
+  return res;
+}
+
 const Book ** same_author(
   size_t& out,
   const Lib * libs,
   size_t l,
   const Book* const* match,
   size_t b
-);
+)
+{
+  const Book ** res = new const Book * [1];
+  size_t count = 0;
+  for (size_t i = 0; i < l; ++i) {
+    size_t k = 0;
+    const Book ** new_books = same_author(k, libs[i], match, b);
+    extend(&res, count, new_books, k);
+    delete[] new_books;
+    count += k;
+  }
+  if (count == 0) {
+    delete[] res;
+    return nullptr;
+  }
+  return res;
+}
 
 /*
  * Сколько книг определённого автора (авторов) нужно изъять из библиотеки (библиотек)?
@@ -79,3 +162,6 @@ size_t space_after_out(const Lib & db, const Book* book);
 size_t space_after_out(const Lib * libs, size_t l, const Book* book);
 size_t space_after_out(const Lib & db, const Book* const* match, size_t b);
 size_t space_after_out(const Lib * libs, size_t l, const Book* const* match, size_t b);
+
+int main()
+{}
