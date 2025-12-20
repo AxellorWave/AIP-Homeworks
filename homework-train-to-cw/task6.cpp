@@ -70,7 +70,12 @@ const Book ** same_author(
     delete[] res;
     return nullptr;
   }
-  cut(&res, count);
+  try {
+    cut(&res, count);
+  } catch (const std::bad_alloc & e) {
+    delete[] res;
+    throw;
+  }
   out = count;
   return res;
 }
@@ -82,15 +87,22 @@ const Book ** same_author(
   const Book* book
 )
 {
-  const Book ** res = new const Book * [1];
+  const Book ** res = nullptr;
   size_t count = 0;
   for (size_t i = 0; i < l; ++i) {
     size_t k = 0;
     const Book ** new_books = same_author(k, libs[i], book);
-    extend(&res, count, new_books, k);
+    try {
+      extend(&res, count, new_books, k);
+    } catch (const std::bad_alloc & e) {
+      delete[] res;
+      delete[] new_books;
+      throw;
+    }
     delete[] new_books;
     count += k;
   }
+  out = count;
   if (count == 0) {
     delete[] res;
     return nullptr;
@@ -126,7 +138,12 @@ const Book ** same_author(
     delete[] res;
     return nullptr;
   }
-  cut(&res, count);
+  try {
+    cut(&res, count);
+  } catch (const std::bad_alloc & e) {
+    delete[] res;
+    throw;
+  }
   out = count;
   return res;
 }
@@ -144,10 +161,17 @@ const Book ** same_author(
   for (size_t i = 0; i < l; ++i) {
     size_t k = 0;
     const Book ** new_books = same_author(k, libs[i], match, b);
-    extend(&res, count, new_books, k);
+    try {
+      extend(&res, count, new_books, k);
+    } catch (const std::bad_alloc & e) {
+      delete[] res;
+      delete[] new_books;
+      throw;
+    }
     delete[] new_books;
     count += k;
   }
+  out = count;
   if (count == 0) {
     delete[] res;
     return nullptr;
@@ -166,18 +190,19 @@ const Book ** same_author(
  * Поиск нужно выполнить для одной библиотеки
     и для нескольких
  */
-bool isBookOut(size_t counts)
+bool isBookOut(size_t counts, size_t stocks)
 {
-  if (counts == 0) {
+  if (counts == 0 && stocks != 0) {
     return true;
   }
+  return false;
 }
 
 size_t space_after_out(const Lib & db, const Book* book)
 {
   size_t res = 0;
   for (size_t i = 0; i < db.books; ++i) {
-    if (isCorrectAuthor(db.lib[i], book) && isBookOut(db.counts[i])) {
+    if (isCorrectAuthor(db.lib[i], book) && isBookOut(db.counts[i], db.stocks[i])) {
       res += db.stocks[i];
     }
   }
@@ -197,7 +222,7 @@ size_t space_after_out(const Lib & db, const Book* const* match, size_t b)
   {
   size_t res = 0;
   for (size_t i = 0; i < db.books; ++i) {
-    if (isCorrectAuthor(match, b, db.lib[i]) && isBookOut(db.counts[i])) {
+    if (isCorrectAuthor(match, b, db.lib[i]) && isBookOut(db.counts[i], db.stocks[i])) {
       res += db.stocks[i];
     }
   }
@@ -221,6 +246,23 @@ size_t space_after_out(const Lib * libs, size_t l, const Book* const* match, siz
     или одному из авторов книг в заданном наборе
  */
 // возвращает размер сметы
+
+size_t * copy(size_t * src, size_t * dest, size_t k)
+{
+  for (size_t i = 0; i < k; ++i) {
+    dest[i] = src[i];
+  }
+  return dest + k;
+}
+
+void cut(size_t ** counts, size_t k)
+{
+  size_t * res = new size_t[k];
+  copy(*counts, res, k);
+  delete[] *counts;
+  *counts = res;
+}
+
 size_t out_list(
   // (результат) указатель на набор книг сметы
   const Book *** to_out,
@@ -230,7 +272,32 @@ size_t out_list(
   const size_t ** out_each,
   const Lib & db, // библиотека
   const Book* book // книга-образец
-);
+)
+{
+  size_t count = 0;
+  const Book ** out_books = nullptr;
+  size_t * out_count = nullptr;
+  try {
+    out_books = new Book * [db.books];
+    out_count = new size_t[db.books];
+    for (size_t i = 0; i < db.books; ++i) {
+      if (isCorrectAuthor(db.lib[i], book) && isBookOut(db.counts[i], db.stocks[i])) {
+        out_books[count] = db.lib[i];
+        out_count[count++] = db.stocks[i];
+      }
+    }
+    cut(&out_books, count);
+    cut(&out_count, count);
+  } catch (const std::bad_alloc & e) {
+    delete[] out_books;
+    delete[] out_count;
+    throw;
+  }
+  *to_out = out_books;
+  *out_each = out_count;
+  return count;
+}
+
 size_t out_list(
   // (результат) указатель на книги из сметы
   //   книги не должны повторяться, если одна книга
