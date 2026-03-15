@@ -294,11 +294,68 @@ Vector< BiList< T > * > copy(const Vector< const BiList< T > * > v)
 // 11. Выполнить глубокое копирования структуры данных,
 // ...оставляя только элементы, удовлетворяющие заданному условию
 template< class T, class P >
-Vector< BiList< T > * > copy_if(const Vector< const BiList< T > * > v, P p);
+BiList< T > * copy_list(const BiList< T > * h, P p)
+{
+  if (!h) {
+    return nullptr;
+  }
+  while (!p(h->val)) {
+    h = h->next;
+  }
+  BiList< T > * head = new BiList< T > {h->val, nullptr, nullptr};
+  BiList< T > * tail = head;
+  try {
+    h = h->next;
+    while (h) {
+      if (p(h->val)) {
+        BiList< T > * new_node = new BiList< T > {h->val, tail, nullptr};
+        tail->next = new_node;
+        tail = new_node;
+      }
+      h = h->next;
+    }
+  } catch (...) {
+    clear(head);
+  }
+  return head;
+}
+
+template< class T, class P >
+Vector< BiList< T > * > copy_if(const Vector< const BiList< T > * > v, P p)
+{
+  Vector< BiList< T > * > res {new BiList< T > * [v.size], 0, v.size};
+  try {
+    for (size_t i = 0; i < v.size; ++i) {
+      res.data[i] = copy_list(v.data[i], p);
+      ++res.size;    
+    }
+    return res;
+  } catch (...) {
+    delete[] res.data;
+    throw;
+  }
+}
 
 // 12. Преобразовать структуру данных в вектор
 template< class T >
-Vector< T > convert_to_vector(const Vector< const BiList< T > * > v);
+Vector< T > convert_to_vector(const Vector< const BiList< T > * > v)
+{
+  Vector< T > res {new T[size(v)], 0, size(v)};
+  try {
+    for (size_t i = 0; i < v.size; ++i) {
+      const BiList< T > * curr = v.data[i];
+      while (curr) {
+        res.data[res.size] = curr->val;
+        ++res.size;
+        curr = curr->next;
+      }
+    }
+  } catch (...) {
+    delete[] res.data;
+    throw;
+  }
+  return res;
+}
 
 // 13. Преобразовать структуру данных в список
 template< class T >
