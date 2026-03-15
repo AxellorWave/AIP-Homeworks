@@ -242,9 +242,53 @@ size_t remove_if(Vector< BiList< T > * > v, P p)
 
 // 10. Выполнить глубокое копирование структуры данных
 template< class T >
+void clear(BiList< T > * h)
+{
+  while (h) {
+    BiList< T > * next = h->next;
+    delete h;
+    h = next;
+  }
+  
+}
+
+template< class T >
+BiList< T > * copy_list(const BiList< T > * h)
+{
+  if (!h) {
+    return nullptr;
+  }
+  BiList< T > * head = new BiList< T > {h->val, nullptr, nullptr};
+  BiList< T > * tail = head;
+  try {
+    h = h->next;
+    while (h) {
+      BiList< T > * new_node = new BiList< T > {h->val, tail, nullptr};
+      tail->next = new_node;
+      tail = new_node;
+      h = h->next;
+    }
+  } catch (...) {
+    clear(head);
+  }
+  return head;
+}
+
+template< class T >
 Vector< BiList< T > * > copy(const Vector< const BiList< T > * > v)
 {
-  
+  Vector< BiList< T > * > res {nullptr, 0, v.size};
+  res.data = new BiList< T > * [v.size];
+  try {
+    for (size_t i = 0; i < v.size; ++i) {
+      res.data[i] = copy_list(v.data[i]);
+      ++res.size;    
+    }
+    return res;
+  } catch (...) {
+    delete[] res.data;
+    throw;
+  }
 }
 
 // 11. Выполнить глубокое копирования структуры данных,
