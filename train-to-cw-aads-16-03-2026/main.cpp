@@ -202,7 +202,7 @@ size_t remove_if_any_in_list(Vector< BiList< T > * > v, P p)
       delete_list(v.data[i]);
     }
   }
-  return res; 
+  return res;
 }
 
 // 9. Удалить из структуры элементы,
@@ -249,7 +249,6 @@ void clear(BiList< T > * h)
     delete h;
     h = next;
   }
-  
 }
 
 template< class T >
@@ -282,7 +281,7 @@ Vector< BiList< T > * > copy(const Vector< const BiList< T > * > v)
   try {
     for (size_t i = 0; i < v.size; ++i) {
       res.data[i] = copy_list(v.data[i]);
-      ++res.size;    
+      ++res.size;
     }
     return res;
   } catch (...) {
@@ -327,7 +326,7 @@ Vector< BiList< T > * > copy_if(const Vector< const BiList< T > * > v, P p)
   try {
     for (size_t i = 0; i < v.size; ++i) {
       res.data[i] = copy_list(v.data[i], p);
-      ++res.size;    
+      ++res.size;
     }
     return res;
   } catch (...) {
@@ -359,20 +358,97 @@ Vector< T > convert_to_vector(const Vector< const BiList< T > * > v)
 
 // 13. Преобразовать структуру данных в список
 template< class T >
-BiList< T > * convert_to_list(const Vector< const BiList< T > * > v);
+BiList< T > * convert_to_list(const Vector< const BiList< T > * > v)
+{
+  BiList< T > * head = nullptr;
+  BiList< T > * tail = nullptr;
+  try {
+    for (size_t i = 0; i < v.size; ++i) {
+      const BiList< T > * curr = v.data[i];
+      while (curr) {
+        BiList< T > * new_node = new BiList< T > {curr->val, nullptr, tail};
+        if (tail) {
+          tail->next = new_node;
+        } else {
+          head = new_node;
+        }
+        tail = new_node;
+        curr = curr->next;
+      }
+    }
+  } catch (...) {
+    while (head) {
+      BiList< T > * next = head->next;
+      delete head;
+      head = next;
+    }
+    throw;
+  }
+  return head;
+}
 
 // 14. Преобразовать структуру даннных в список,
 // ...перенеся узлы из оригинальной структуры
 template< class T >
-BiList< T > * moved_convert_to_list(Vector< BiList< T > * > v);
+BiList< T > * moved_convert_to_list(Vector< BiList< T > * > v)
+{
+  BiList< T > * head = v.data[0];
+  BiList< T > * tail = head;
+  while (tail && tail->next) {
+    tail = tail->next;
+  }
+
+  for (size_t i = 1; i < v.size; ++i) {
+    BiList< T > * curr = v.data[i];
+    if (curr) {
+      tail->next = curr;
+      curr->prev = tail;
+      while (tail->next) {
+        tail = tail->next;
+      }
+    }
+  }
+  return head;
+}
 
 // 15. Проверить структуру данных:
 // ...убедиться, что в векторе нет списков с общими элементами
 template< class T >
-bool is_different_lists(const Vector< const BiList< T > * > v);
+bool is_different_lists(const Vector< const BiList< T > * > v)
+{
+  for (size_t i = 0; i < v.size; ++i) {
+    const BiList< T > * node1  = v.data[i];
+    while (node1) {
+      for (size_t j = i + 1; j < v.size; ++j) {
+        const BiList< T > * node2 = v.data[j];
+        while (node2) {
+          if (node1 == node2) {
+            return false;
+          }
+          node2 = node2->next;
+        }
+      }
+      node1 = node1->next;
+    }
+  }
+  return true;
+}
 
 // 16. Исправить структуру данных:
 // ...убрать пустые списки из вектора
 // Вернуть количество таких списков
 template< class T >
-size_t remove_empty(Vector< const BiList< T > * > & v);
+size_t remove_empty(Vector< const BiList< T > * > & v)
+{
+  size_t res = 0;
+  size_t size = 0;
+  for (size_t i = 0; i < v.size; ++i) {
+    if (v.data[i]) {
+      v.data[size++] = v.data[i];
+    } else {
+      ++res;
+    }
+  }
+  v.size = size;
+  return res;
+}
