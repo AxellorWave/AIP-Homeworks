@@ -2,7 +2,7 @@
 #include <utility>
 
 // Вектор
-template < class T >
+template< class T >
 struct Vec
 {
   T* data;
@@ -10,7 +10,7 @@ struct Vec
 };
 
 // Список
-template < class T >
+template< class T >
 struct List
 {
   List< T >* next;
@@ -20,7 +20,7 @@ struct List
 // Хеш-таблица с закрытой адресацией
 // Разрешение коллизий методом цепочек
 // Хешируемый ключ - K, хранимое значение - V
-template < class K, class V >
+template< class K, class V >
 struct Table
 {
   Vec< List< std::pair< K, V > >* > tb;
@@ -28,7 +28,7 @@ struct Table
 
 // Бинарное дерево
 // Параметр K - ключ дерева, V - значение
-template < class K, class V >
+template< class K, class V >
 struct Tree
 {
   Tree< K, V >*lhs, *rhs;
@@ -36,7 +36,7 @@ struct Tree
   std::pair< K, V > val;
 };
 
-template < class T, class U, class W >
+template< class T, class U, class W >
 using ds_t = Tree< T, Table< U, W > >;
 
 // Полагая, что бинарное дерево организовано как дерево поиска,
@@ -47,7 +47,7 @@ using ds_t = Tree< T, Table< U, W > >;
 // параметров
 
 // Освободить память, занимаемую структурой
-template < class T >
+template< class T >
 void clear(List< T >* root) noexcept
 {
   if (!root)
@@ -58,7 +58,7 @@ void clear(List< T >* root) noexcept
   delete root;
 }
 
-template < class U, class W >
+template< class U, class W >
 void clear(Table< U, W >& table) noexcept
 {
   for (size_t i = 0; i < table.tb.size; ++i)
@@ -68,7 +68,7 @@ void clear(Table< U, W >& table) noexcept
   delete[] table.tb.data;
 }
 
-template < class T, class U, class W >
+template< class T, class U, class W >
 void clear(ds_t< T, U, W >* root) noexcept
 {
   if (!root)
@@ -83,31 +83,199 @@ void clear(ds_t< T, U, W >* root) noexcept
 
 // Освободить память, занимаемую структурой ИТЕРАТИВНО
 // Подсказка: с помощью поворотов превратите дерево в список
-template < class T, class U, class W >
-void clearit(ds_t< T, U, W >* root) noexcept;
+template< class K, class V >
+Tree< K, V >* rotateRight(Tree< K, V >* node)
+{
+  Tree< K, V >* y = node->lhs;
+  Tree< K, V >* tmp = y->rhs;
+  y->rhs = node;
+  y->parent = node->parent;
+  if (node->parent && node->parent->lhs == node)
+  {
+    node->parent->lhs = y;
+  }
+  else if (node->parent && node->parent->rhs == node)
+  {
+    node->parent->rhs = y;
+  }
+  node->parent = y;
+  node->lhs = tmp;
+  if (tmp)
+  {
+    tmp->parent = node;
+  }
+  return y;
+}
+
+template< class K, class V >
+Tree< K, V >* convertToLine(Tree< K, V >* root)
+{
+  Tree< K, V >* curr = root;
+  Tree< K, V >* res = root;
+  while (curr)
+  {
+    if (curr->lhs)
+    {
+      curr = rotateRight(curr);
+      if (!curr->parent)
+      {
+        res = curr;
+      }
+    }
+    else
+    {
+      curr = curr->rhs;
+    }
+  }
+  return res;
+}
+
+template< class T >
+void clearit(List< T >* root) noexcept
+{
+  while (root)
+  {
+    List< T >* next = root->next;
+    delete root;
+    root = next;
+  }
+}
+
+template< class U, class W >
+void clearit(Table< U, W >& table) noexcept
+{
+  for (size_t i = 0; i < table.tb.size; ++i)
+  {
+    clearit(table.tb.data[i]);
+  }
+  delete[] table.tb.data;
+}
+
+template< class T, class U, class W >
+void clearit(ds_t< T, U, W >* root) noexcept
+{
+  root = convertToLine(root);
+  while (root)
+  {
+    ds_t< T, U, W >* next = root->rhs;
+    clearit(root->val.second);
+    delete root;
+    root = next;
+  }
+}
 
 // Добавить узел дерева с пустой хеш-таблицей
 // Вернуть указатель на этот узел
 // Параметры пустой хеш-таблицы определяются реализацией
 // Поддержите строгую гарантию
-template < class T, class U, class W, class CMP >
-ds_t< T, U, W >* make_node(ds_t< T, U, W >* root, T key, CMP cmp);
+template< class U, class W >
+Table< U, W > make_table()
+{
+  Table< U, W > table;
+  table.tb.data = new List< std::pair< U, W > >*[10]{};
+  table.tb.size = 0;
+  table.tb.cap = 10;
+  return table;
+}
+
+template< class T, class U, class W, class CMP >
+ds_t< T, U, W >* make_node(ds_t< T, U, W >* root, T key, CMP cmp)
+{
+  ds_t< T, U, W >* curr = root;
+  ds_t< T, U, W >* parent = nullptr;
+  bool is_left = true;
+  while (curr)
+  {
+    parent = curr;
+    if (cmp(key, curr->val.first))
+    {
+      curr = curr->lhs;
+      is_left = true;
+    }
+    else if (cmp(curr->val.first, key))
+    {
+      curr = curr->rhs;
+      is_left = false;
+    }
+    else
+    {
+      return curr;
+    }
+  }
+
+  ds_t< T, U, W >* node = new ds_t< T, U, W >{};
+  try
+  {
+    node->val.second = make_table< U, W >();
+  }
+  catch (...)
+  {
+    delete node;
+    throw;
+  }
+  node->val.first = key;
+  node->parent = parent;
+  if (parent)
+  {
+    if (is_left)
+    {
+      parent->lhs = node;
+    }
+    else
+    {
+      parent->rhs = node;
+    }
+  }
+
+  return node;
+}
 
 // Вставить элемент в хеш-таблицу соответствующего узла дерева (создать узел при необходимости)
 // Вернуть указатель на узел и номер слота
 // Хеш-таблица не расширяется, новые элементы вставляются в конец цепочки
 // Поддержите строгую гарантию
-template < class T, class U, class W, class CMP, class HASH, class EQ >
+template< class T, class U, class W, class CMP, class HASH, class EQ >
 std::pair< ds_t< T, U, W >*, size_t >
-insert(ds_t< T, U, W >* root, T key, CMP cmp, U tkey, HASH h, EQ eq, W val);
+insert(ds_t< T, U, W >* root, T key, CMP cmp, U tkey, HASH h, EQ eq, W val)
+{
+  root = make_node(root, key, cmp);
+  size_t index = h(tkey) % root->val.second.tb.cap;
+  List< std::pair< U, W > >* curr = root->val.second.tb.data[index];
+  List< std::pair< U, W > >* prev = nullptr;
+  while (curr && !eq(curr->val.first, tkey))
+  {
+    prev = curr;
+    curr = curr->next;
+  }
+  if (!curr)
+  {
+    List< std::pair< U, W > >* new_node = new List< std::pair< U, W > >;
+    new_node->val = {tkey, val};
+    new_node->next = nullptr;
+    if (prev)
+    {
+      prev->next = new_node;
+    }
+    else
+    {
+      root->val.second.tb.data[index] = new_node;
+    }
+    ++root->val.second.tb.size;
+  }
+  else
+  {
+    curr->val.second = val;
+  }
+  return {root, index};
+}
 
 // Подсчитать значения в хеш-таблицах, равные заданному
 // Поддержите строгую гарантию
-template < class T, class U, class W, class EQ >
+template< class T, class U, class W, class EQ >
 size_t count(ds_t< T, U, W >* root, W val, EQ eq);
 // Подсчитать значения в хеш-таблицах, удовлетворяющих условию
 // Поддержите строгую гарантию
-template < class T, class U, class W, class COND >
+template< class T, class U, class W, class COND >
 size_t count_if(ds_t< T, U, W >* root, COND cond);
 
 // Переместить элементы хеш-таблицы из указанного узла в другой
@@ -115,7 +283,7 @@ size_t count_if(ds_t< T, U, W >* root, COND cond);
 // Хеш-таблица не расширяется, новые элементы вставляются в конец цепочки
 // Поддержите базовую гарантию: данные не должны теряться
 // В параметр запишите количество перенесенных элементов
-template < class T, class U, class W, class CMP, class HASH, class EQ >
+template< class T, class U, class W, class CMP, class HASH, class EQ >
 void move(size_t& moved, ds_t< T, U, W >* root, T from, T to, CMP cmp, HASH h, EQ eq);
 
 // Переместить элементы хеш-таблицы из указанного узла в другой
@@ -126,7 +294,7 @@ void move(size_t& moved, ds_t< T, U, W >* root, T from, T to, CMP cmp, HASH h, E
 // Поддержите базовую гарантию: данные не должны теряться
 // В параметр запишите количество перенесенных элементов, узел в который выполнялся перенос
 // ...и узел из которого выполнялся перенос
-template < class T, class U, class W, class CMP, class HASH, class EQ >
+template< class T, class U, class W, class CMP, class HASH, class EQ >
 void move(size_t& moved,
   ds_t< T, U, W >** dest,
   ds_t< T, U, W >** src,
@@ -141,7 +309,7 @@ void move(size_t& moved,
 // Преобразовать дерево хеш-таблиц в одну хеш-таблицу
 // Данные должны быть скопированы
 // Поддержите строгую гарантию
-template < class T, class U, class W, class HASH, class EQ >
+template< class T, class U, class W, class HASH, class EQ >
 Table< U, W > convert(const ds_t< T, U, W >* root, HASH h, EQ eq);
 
 // Перенести данные из хеш-таблиц в одну хеш-таблицу
@@ -149,13 +317,13 @@ Table< U, W > convert(const ds_t< T, U, W >* root, HASH h, EQ eq);
 // Поддержите базовую гарантию: данные не должны теряться
 // При генерации исключения вынесенные элементы должны быть
 // записаны в параметр в виде единого списка (то есть когда не удалось создать таблицу)
-template < class T, class U, class W, class HASH, class EQ >
+template< class T, class U, class W, class HASH, class EQ >
 Table< U, W > move(List< std::pair< U, W > >** backup, ds_t< T, U, W >* root, HASH h, EQ eq);
 
 // Слить два дерева хеш-таблиц в одно общее дерево
 // Данные должны быть скоприованы
 // Поддержите строгую гарантию
-template < class T, class U, class W, class CMP, class HASH, class EQ >
+template< class T, class U, class W, class CMP, class HASH, class EQ >
 ds_t< T, U, W >*
 merge(const ds_t< T, U, W >* root1, const ds_t< T, U, W >* root2, CMP cmp, HASH h, EQ eq);
 
@@ -164,6 +332,6 @@ merge(const ds_t< T, U, W >* root1, const ds_t< T, U, W >* root2, CMP cmp, HASH 
 // Освобождать память второго дерева не нужно
 // Поддержите базову гарантию: данные не должны теряться
 // В параметр запишите количество перенесенных элементов хеш-таблиц
-template < class T, class U, class W, class CMP, class HASH, class EQ >
+template< class T, class U, class W, class CMP, class HASH, class EQ >
 ds_t< T, U, W >*
 merge(size_t& moved, ds_t< T, U, W >* root1, ds_t< T, U, W >* root2, CMP cmp, HASH h, EQ eq);
