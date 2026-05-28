@@ -631,11 +631,89 @@ void move(size_t& moved,
   }
 }
 
+template< class T, class U, class W, class HASH >
+void convert_into(Table< U, W >& dst, const ds_t< T, U, W >* src, HASH h)
+{
+  if (!src)
+  {
+    return;
+  }
+  convert_into(dst, src->lhs, h);
+  for (size_t i = 0; i < src->val.second.tb.cap; ++i)
+  {
+    for (const List< std::pair< U, W > >* node = src->val.second.tb.data[i]; node; node = node->next)
+    {
+      size_t target = h(node->val.first) % dst.tb.cap;
+      List< std::pair< U, W > >* new_node = new List< std::pair< U, W > >{};
+      new_node->val = node->val;
+      new_node->next = nullptr;
+      if (!dst.tb.data[target])
+      {
+        dst.tb.data[target] = new_node;
+        ++dst.tb.size;
+      }
+      else
+      {
+        List< std::pair< U, W > >* tail = dst.tb.data[target];
+        while (tail->next)
+        {
+          tail = tail->next;
+        }
+        tail->next = new_node;
+      }
+    }
+  }
+  convert_into(dst, src->rhs, h);
+}
+
 // Преобразовать дерево хеш-таблиц в одну хеш-таблицу
 // Данные должны быть скопированы
 // Поддержите строгую гарантию
 template< class T, class U, class W, class HASH, class EQ >
-Table< U, W > convert(const ds_t< T, U, W >* root, HASH h, EQ eq);
+Table< U, W > convert(const ds_t< T, U, W >* root, HASH h, EQ eq)
+{
+  Table< U, W > result = make_table< U, W >();
+  try
+  {
+    convert_into(result, root, h);
+  }
+  catch (...)
+  {
+    clear(result);
+    throw;
+  }
+  return result;
+}
+
+template< class T, class U, class W >
+List< std::pair< U, W > >* collect_all_nodes(ds_t< T, U, W >* root)
+{
+  if (!root)
+  {
+    return nullptr;
+  }
+  List< std::pair< U, W > >* result = collect_all_nodes(root->lhs);
+  List< std::pair< U, W > >** tail = &result;
+  while (*tail)
+  {
+    tail = &(*tail)->next;
+  }
+  for (size_t i = 0; i < root->val.second.tb.cap; ++i)
+  {
+    if (root->val.second.tb.data[i])
+    {
+      *tail = root->val.second.tb.data[i];
+      root->val.second.tb.data[i] = nullptr;
+      while (*tail)
+      {
+        tail = &(*tail)->next;
+      }
+    }
+  }
+  root->val.second.tb.size = 0;
+  *tail = collect_all_nodes(root->rhs);
+  return result;
+}
 
 // Перенести данные из хеш-таблиц в одну хеш-таблицу
 // Элементы цепочек хеш-таблицы не должны пересоздаваться
@@ -643,20 +721,168 @@ Table< U, W > convert(const ds_t< T, U, W >* root, HASH h, EQ eq);
 // При генерации исключения вынесенные элементы должны быть
 // записаны в параметр в виде единого списка (то есть когда не удалось создать таблицу)
 template< class T, class U, class W, class HASH, class EQ >
-Table< U, W > move(List< std::pair< U, W > >** backup, ds_t< T, U, W >* root, HASH h, EQ eq);
+Table< U, W > move(List< std::pair< U, W > >** backup, ds_t< T, U, W >* root, HASH h, EQ eq)
+{
+  *backup = nullptr;
+  List< std::pair< U, W > >* flat = collect_all_nodes(root);
+  Table< U, W > result;
+  try
+  {
+    result = make_table< U, W >();
+  }
+  catch (...)
+  {
+    *backup = flat;
+    throw;
+  }
+  try
+  {
+    while (flat)
+    {
+      List< std::pair< U, W > >* curr = flat;
+      size_t target = h(curr->val.first) % result.tb.cap;
+      flat = curr->next;
+      curr->next = nullptr;
+      if (!result.tb.data[target])
+      {
+        result.tb.data[target] = curr;
+        ++result.tb.size;
+      }
+      else
+      {
+        List< std::pair< U, W > >* tail = result.tb.data[target];
+        while (tail->next)
+        {
+          tail = tail->next;
+        }
+        tail->next = curr;
+      }
+    }
+  }
+  catch (...)
+  {
+    for (size_t i = 0; i < result.tb.cap; ++i)
+    {
+      while (result.tb.data[i])
+      {
+        List< std::pair< U, W > >* curr = result.tb.data[i];
+        result.tb.data[i] = curr->next;
+        curr->next = flat;
+        flat = curr;
+      }
+    }
+    delete[] result.tb.data;
+    *backup = flat;
+    throw;
+  }
+  return result;
+}
+
+template< class T, class U, class W, class CMP, class HASH >
+void copy_into(ds_t< T, U, W >*& result, const ds_t< T, U, W >* src, CMP cmp, HASH h)
+{
+  if (!src)
+  {
+    return;
+  }
+  copy_into(result, src->lhs, cmp, h);
+  for (size_t i = 0; i < src->val.second.tb.cap; ++i)
+  {
+    for (const List< std::pair< U, W > >* node = src->val.second.tb.data[i]; node; node = node->next)
+    {
+      ds_t< T, U, W >* tree_node = make_node(result, src->val.first, cmp);
+      if (!result)
+      {
+        result = tree_node;
+      }
+      size_t target = h(node->val.first) % tree_node->val.second.tb.cap;
+      List< std::pair< U, W > >* new_node = new List< std::pair< U, W > >{};
+      new_node->val = node->val;
+      new_node->next = nullptr;
+      if (!tree_node->val.second.tb.data[target])
+      {
+        tree_node->val.second.tb.data[target] = new_node;
+        ++tree_node->val.second.tb.size;
+      }
+      else
+      {
+        List< std::pair< U, W > >* tail = tree_node->val.second.tb.data[target];
+        while (tail->next)
+        {
+          tail = tail->next;
+        }
+        tail->next = new_node;
+      }
+    }
+  }
+  copy_into(result, src->rhs, cmp, h);
+}
 
 // Слить два дерева хеш-таблиц в одно общее дерево
 // Данные должны быть скоприованы
 // Поддержите строгую гарантию
 template< class T, class U, class W, class CMP, class HASH, class EQ >
 ds_t< T, U, W >*
-merge(const ds_t< T, U, W >* root1, const ds_t< T, U, W >* root2, CMP cmp, HASH h, EQ eq);
+merge(const ds_t< T, U, W >* root1, const ds_t< T, U, W >* root2, CMP cmp, HASH h, EQ eq)
+{
+  ds_t< T, U, W >* result = nullptr;
+  try
+  {
+    copy_into(result, root1, cmp, h);
+    copy_into(result, root2, cmp, h);
+  }
+  catch (...)
+  {
+    clear(result);
+    throw;
+  }
+  return result;
+}
 
-// Перенести данные из второго дерева в первое дерево
-// Элементы цепочеке хеш-таблицы не должны пересоздаваться
-// Освобождать память второго дерева не нужно
-// Поддержите базову гарантию: данные не должны теряться
-// В параметр запишите количество перенесенных элементов хеш-таблиц
 template< class T, class U, class W, class CMP, class HASH, class EQ >
 ds_t< T, U, W >*
-merge(size_t& moved, ds_t< T, U, W >* root1, ds_t< T, U, W >* root2, CMP cmp, HASH h, EQ eq);
+merge(size_t& moved, ds_t< T, U, W >* root1, ds_t< T, U, W >* root2, CMP cmp, HASH h, EQ eq)
+{
+  if (!root2)
+  {
+    return root1;
+  }
+  root1 = merge(moved, root1, root2->lhs, cmp, h, eq);
+  ds_t< T, U, W >* node1 = make_node(root1, root2->val.first, cmp);
+  if (!root1)
+  {
+    root1 = node1;
+  }
+  Table< U, W >& from_tb = root2->val.second;
+  Table< U, W >& to_tb = node1->val.second;
+  for (size_t i = 0; i < from_tb.tb.cap; ++i)
+  {
+    while (from_tb.tb.data[i])
+    {
+      List< std::pair< U, W > >* curr = from_tb.tb.data[i];
+      size_t target = h(curr->val.first) % to_tb.tb.cap;
+      from_tb.tb.data[i] = curr->next;
+      if (!from_tb.tb.data[i])
+      {
+        --from_tb.tb.size;
+      }
+      curr->next = nullptr;
+      if (!to_tb.tb.data[target])
+      {
+        to_tb.tb.data[target] = curr;
+        ++to_tb.tb.size;
+      }
+      else
+      {
+        List< std::pair< U, W > >* tail = to_tb.tb.data[target];
+        while (tail->next)
+        {
+          tail = tail->next;
+        }
+        tail->next = curr;
+      }
+      ++moved;
+    }
+  }
+  return merge(moved, root1, root2->rhs, cmp, h, eq);
+}
