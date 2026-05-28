@@ -508,54 +508,72 @@ void move(size_t& moved, ds_t< T, U, W >* root, T from, T to, CMP cmp, HASH h, E
 template< class U, class W, class HASH >
 void rebuild(Table< U, W >& table, size_t new_cap, HASH h)
 {
-  List< std::pair< U, W > >** new_data = new List< std::pair< U, W > >*[new_cap]{};
-  size_t new_size = 0;
+  size_t total = 0;
+  for (size_t i = 0; i < table.tb.cap; ++i)
+  {
+    for (List< std::pair< U, W > >* n = table.tb.data[i]; n; n = n->next)
+    {
+      ++total;
+    }
+  }
+
+  size_t* targets = new size_t[total]{};
+  size_t k = 0;
   try
   {
     for (size_t i = 0; i < table.tb.cap; ++i)
     {
-      while (table.tb.data[i])
+      for (List< std::pair< U, W > >* n = table.tb.data[i]; n; n = n->next)
       {
-        List< std::pair< U, W > >* curr = table.tb.data[i];
-        size_t target = h(curr->val.first) % new_cap;
-        table.tb.data[i] = curr->next;
-        curr->next = nullptr;
-        if (!new_data[target])
-        {
-          new_data[target] = curr;
-          ++new_size;
-        }
-        else
-        {
-          List< std::pair< U, W > >* tail = new_data[target];
-          while (tail->next)
-          {
-            tail = tail->next;
-          }
-          tail->next = curr;
-        }
+        targets[k++] = h(n->val.first) % new_cap;
       }
     }
   }
   catch (...)
   {
-    for (size_t j = 0; j < new_cap; ++j)
-    {
-      while (new_data[j])
-      {
-        List< std::pair< U, W > >* curr = new_data[j];
-        new_data[j] = curr->next;
-        curr->next = table.tb.data[0];
-        if (!table.tb.data[0])
-        {
-          ++table.tb.size;
-        }
-        table.tb.data[0] = curr;
-      }
-    }
-    delete[] new_data;
+    delete[] targets;
     throw;
   }
+
+  List< std::pair< U, W > >** new_data;
+  try
+  {
+    new_data = new List< std::pair< U, W > >*[new_cap]{};
+  }
+  catch (...)
+  {
+    delete[] targets;
+    throw;
+  }
+
+  k = 0;
+  size_t new_size = 0;
+  for (size_t i = 0; i < table.tb.cap; ++i)
+  {
+    while (table.tb.data[i])
+    {
+      List< std::pair< U, W > >* curr = table.tb.data[i];
+      size_t target = targets[k++];
+      table.tb.data[i] = curr->next;
+      curr->next = nullptr;
+      if (!new_data[target])
+      {
+        new_data[target] = curr;
+        ++new_size;
+      }
+      else
+      {
+        List< std::pair< U, W > >* tail = new_data[target];
+        while (tail->next)
+        {
+          tail = tail->next;
+        }
+        tail->next = curr;
+      }
+    }
+  }
+
+  delete[] targets;
   delete[] table.tb.data;
   table.tb.data = new_data;
   table.tb.cap = new_cap;
