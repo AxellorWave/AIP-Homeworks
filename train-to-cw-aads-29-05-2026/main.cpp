@@ -583,14 +583,16 @@ void move(size_t& moved,
   size_t load)
 {
   moved = 0;
-  *src = find_node(root, from, cmp);
-  *dest = find_node(root, to, cmp);
-  if (!*src || !*dest || *src == *dest)
+  ds_t< T, U, W >* from_node = find_node(root, from, cmp);
+  ds_t< T, U, W >* to_node = find_node(root, to, cmp);
+  if (!from_node || !to_node || from_node == to_node)
   {
     return;
   }
-  Table< U, W >& from_tb = (*src)->val.second;
-  Table< U, W >& to_tb = (*dest)->val.second;
+  *src = from_node;
+  *dest = to_node;
+  Table< U, W >& from_tb = from_node->val.second;
+  Table< U, W >& to_tb = to_node->val.second;
   for (size_t i = 0; i < from_tb.tb.cap; ++i)
   {
     while (from_tb.tb.data[i])
