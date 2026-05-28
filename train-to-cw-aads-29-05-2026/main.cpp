@@ -61,7 +61,7 @@ void clear(List< T >* root) noexcept
 template< class U, class W >
 void clear(Table< U, W >& table) noexcept
 {
-  for (size_t i = 0; i < table.tb.size; ++i)
+  for (size_t i = 0; i < table.tb.cap; ++i)
   {
     clear(table.tb.data[i]);
   }
@@ -144,7 +144,7 @@ void clearit(List< T >* root) noexcept
 template< class U, class W >
 void clearit(Table< U, W >& table) noexcept
 {
-  for (size_t i = 0; i < table.tb.size; ++i)
+  for (size_t i = 0; i < table.tb.cap; ++i)
   {
     clearit(table.tb.data[i]);
   }
@@ -207,13 +207,13 @@ ds_t< T, U, W >* make_node(ds_t< T, U, W >* root, T key, CMP cmp)
   try
   {
     node->val.second = make_table< U, W >();
+    node->val.first = key;
   }
   catch (...)
   {
     delete node;
     throw;
   }
-  node->val.first = key;
   node->parent = parent;
   if (parent)
   {
@@ -238,53 +238,329 @@ template< class T, class U, class W, class CMP, class HASH, class EQ >
 std::pair< ds_t< T, U, W >*, size_t >
 insert(ds_t< T, U, W >* root, T key, CMP cmp, U tkey, HASH h, EQ eq, W val)
 {
-  root = make_node(root, key, cmp);
-  size_t index = h(tkey) % root->val.second.tb.cap;
-  List< std::pair< U, W > >* curr = root->val.second.tb.data[index];
-  List< std::pair< U, W > >* prev = nullptr;
-  while (curr && !eq(curr->val.first, tkey))
+  bool is_new = (find_node(root, key, cmp) == nullptr);
+  ds_t< T, U, W >* node = make_node(root, key, cmp);
+  try
   {
-    prev = curr;
-    curr = curr->next;
-  }
-  if (!curr)
-  {
-    List< std::pair< U, W > >* new_node = new List< std::pair< U, W > >;
-    new_node->val = {tkey, val};
-    new_node->next = nullptr;
-    if (prev)
+    size_t index = h(tkey) % node->val.second.tb.cap;
+    List< std::pair< U, W > >* curr = node->val.second.tb.data[index];
+    List< std::pair< U, W > >* prev = nullptr;
+    while (curr && !eq(curr->val.first, tkey))
     {
-      prev->next = new_node;
+      prev = curr;
+      curr = curr->next;
+    }
+    if (!curr)
+    {
+      List< std::pair< U, W > >* new_node = new List< std::pair< U, W > >;
+      new_node->val = {tkey, val};
+      new_node->next = nullptr;
+      if (prev)
+      {
+        prev->next = new_node;
+      }
+      else
+      {
+        node->val.second.tb.data[index] = new_node;
+        ++node->val.second.tb.size;
+      }
     }
     else
     {
-      root->val.second.tb.data[index] = new_node;
+      curr->val.second = val;
     }
-    ++root->val.second.tb.size;
+    return {node, index};
   }
-  else
+  catch (...)
   {
-    curr->val.second = val;
+    if (is_new)
+    {
+      if (node->parent)
+      {
+        if (node->parent->lhs == node)
+        {
+          node->parent->lhs = nullptr;
+        }
+        else
+        {
+          node->parent->rhs = nullptr;
+        }
+      }
+      clear(node->val.second);
+      delete node;
+    }
+    throw;
   }
-  return {root, index};
 }
 
 // Подсчитать значения в хеш-таблицах, равные заданному
 // Поддержите строгую гарантию
+template< class T, class U, class W >
+struct dsIT
+{
+  ds_t< T, U, W >* curr_tree;
+  size_t curr_i;
+  List< std::pair< U, W > >* curr_list;
+};
+
+template< class T, class U, class W >
+bool hasNext(dsIT< T, U, W > it)
+{
+  return it.curr_tree != nullptr;
+}
+
+template< class T, class U, class W >
+ds_t< T, U, W >* next(ds_t< T, U, W >* node) noexcept
+{
+  if (node->rhs)
+  {
+    node = node->rhs;
+    while (node->lhs)
+    {
+      node = node->lhs;
+    }
+    return node;
+  }
+  while (node->parent && node->parent->rhs == node)
+  {
+    node = node->parent;
+  }
+  return node->parent;
+}
+
+template< class T, class U, class W >
+dsIT< T, U, W > getValidNode(ds_t< T, U, W >* node)
+{
+  while (node && node->val.second.tb.size == 0)
+  {
+    node = next(node);
+  }
+  if (!node)
+  {
+    return {nullptr, 0, nullptr};
+  }
+  size_t i = 0;
+  while (i < node->val.second.tb.cap && !node->val.second.tb.data[i])
+  {
+    ++i;
+  }
+  return {node, i, node->val.second.tb.data[i]};
+}
+
+template< class T, class U, class W >
+dsIT< T, U, W > begin(ds_t< T, U, W >* root)
+{
+  while (root && root->lhs)
+  {
+    root = root->lhs;
+  }
+  return getValidNode(root);
+}
+
+template< class T, class U, class W >
+dsIT< T, U, W > next(dsIT< T, U, W > it)
+{
+  if (it.curr_list->next)
+  {
+    return {it.curr_tree, it.curr_i, it.curr_list->next};
+  }
+  size_t next_i = it.curr_i + 1;
+  while (next_i < it.curr_tree->val.second.tb.cap && !it.curr_tree->val.second.tb.data[next_i])
+  {
+    ++next_i;
+  }
+  if (next_i < it.curr_tree->val.second.tb.cap)
+  {
+    return {it.curr_tree, next_i, it.curr_tree->val.second.tb.data[next_i]};
+  }
+  return getValidNode(next(it.curr_tree));
+}
+
 template< class T, class U, class W, class EQ >
-size_t count(ds_t< T, U, W >* root, W val, EQ eq);
+size_t count(ds_t< T, U, W >* root, W val, EQ eq)
+{
+  size_t res = 0;
+  dsIT< T, U, W > it = begin(root);
+  while (hasNext(it))
+  {
+    if (eq(it.curr_list->val.second, val))
+    {
+      ++res;
+    }
+    it = next(it);
+  }
+  return res;
+}
+
+template< class T, class U, class W, class EQ >
+size_t count_rec(ds_t< T, U, W >* root, W val, EQ eq)
+{
+  if (!root)
+  {
+    return 0;
+  }
+  size_t res = count_rec(root->lhs, val, eq) + count_rec(root->rhs, val, eq);
+  for (size_t i = 0; i < root->val.second.tb.cap; ++i)
+  {
+    for (List< std::pair< U, W > >* node = root->val.second.tb.data[i]; node; node = node->next)
+    {
+      if (eq(node->val.second, val))
+      {
+        ++res;
+      }
+    }
+  }
+  return res;
+}
+
 // Подсчитать значения в хеш-таблицах, удовлетворяющих условию
 // Поддержите строгую гарантию
 template< class T, class U, class W, class COND >
-size_t count_if(ds_t< T, U, W >* root, COND cond);
+size_t count_if(ds_t< T, U, W >* root, COND cond)
+{
+  if (!root)
+  {
+    return 0;
+  }
+  size_t res = count_if(root->lhs, cond) + count_if(root->rhs, cond);
+  for (size_t i = 0; i < root->val.second.tb.cap; ++i)
+  {
+    for (List< std::pair< U, W > >* node = root->val.second.tb.data[i]; node; node = node->next)
+    {
+      if (cond(node->val.second))
+      {
+        ++res;
+      }
+    }
+  }
+  return res;
+}
 
 // Переместить элементы хеш-таблицы из указанного узла в другой
 // Элементы цепочек хеш-таблицы не должны пересоздаваться
 // Хеш-таблица не расширяется, новые элементы вставляются в конец цепочки
 // Поддержите базовую гарантию: данные не должны теряться
 // В параметр запишите количество перенесенных элементов
+template< class T, class U, class W, class CMP >
+ds_t< T, U, W >* find_node(ds_t< T, U, W >* root, T key, CMP cmp)
+{
+  while (root)
+  {
+    if (cmp(key, root->val.first))
+    {
+      root = root->lhs;
+    }
+    else if (cmp(root->val.first, key))
+    {
+      root = root->rhs;
+    }
+    else
+    {
+      return root;
+    }
+  }
+  return nullptr;
+}
+
 template< class T, class U, class W, class CMP, class HASH, class EQ >
-void move(size_t& moved, ds_t< T, U, W >* root, T from, T to, CMP cmp, HASH h, EQ eq);
+void move(size_t& moved, ds_t< T, U, W >* root, T from, T to, CMP cmp, HASH h, EQ eq)
+{
+  moved = 0;
+  ds_t< T, U, W >* from_node = find_node(root, from, cmp);
+  ds_t< T, U, W >* to_node = find_node(root, to, cmp);
+  if (!from_node || !to_node)
+  {
+    return;
+  }
+  Table< U, W >& from_tb = from_node->val.second;
+  Table< U, W >& to_tb = to_node->val.second;
+  for (size_t i = 0; i < from_tb.tb.cap; ++i)
+  {
+    while (from_tb.tb.data[i])
+    {
+      List< std::pair< U, W > >* curr = from_tb.tb.data[i];
+      size_t index = h(curr->val.first) % to_tb.tb.cap;
+      from_tb.tb.data[i] = curr->next;
+      if (!from_tb.tb.data[i])
+      {
+        --from_tb.tb.size;
+      }
+      curr->next = nullptr;
+      if (!to_tb.tb.data[index])
+      {
+        to_tb.tb.data[index] = curr;
+        ++to_tb.tb.size;
+      }
+      else
+      {
+        List< std::pair< U, W > >* tail = to_tb.tb.data[index];
+        while (tail->next)
+        {
+          tail = tail->next;
+        }
+        tail->next = curr;
+      }
+      ++moved;
+    }
+  }
+}
+
+template< class U, class W, class HASH >
+void rebuild(Table< U, W >& table, size_t new_cap, HASH h)
+{
+  List< std::pair< U, W > >** new_data = new List< std::pair< U, W > >*[new_cap]{};
+  size_t new_size = 0;
+  try
+  {
+    for (size_t i = 0; i < table.tb.cap; ++i)
+    {
+      while (table.tb.data[i])
+      {
+        List< std::pair< U, W > >* curr = table.tb.data[i];
+        size_t target = h(curr->val.first) % new_cap;
+        table.tb.data[i] = curr->next;
+        curr->next = nullptr;
+        if (!new_data[target])
+        {
+          new_data[target] = curr;
+          ++new_size;
+        }
+        else
+        {
+          List< std::pair< U, W > >* tail = new_data[target];
+          while (tail->next)
+          {
+            tail = tail->next;
+          }
+          tail->next = curr;
+        }
+      }
+    }
+  }
+  catch (...)
+  {
+    for (size_t j = 0; j < new_cap; ++j)
+    {
+      while (new_data[j])
+      {
+        List< std::pair< U, W > >* curr = new_data[j];
+        new_data[j] = curr->next;
+        curr->next = table.tb.data[0];
+        if (!table.tb.data[0])
+        {
+          ++table.tb.size;
+        }
+        table.tb.data[0] = curr;
+      }
+    }
+    delete[] new_data;
+    throw;
+  }
+  delete[] table.tb.data;
+  table.tb.data = new_data;
+  table.tb.cap = new_cap;
+  table.tb.size = new_size;
+}
 
 // Переместить элементы хеш-таблицы из указанного узла в другой
 // Элементы цепочек хеш-таблицы не должны пересоздаваться
@@ -304,7 +580,54 @@ void move(size_t& moved,
   CMP cmp,
   HASH h,
   EQ eq,
-  size_t load);
+  size_t load)
+{
+  moved = 0;
+  *src = find_node(root, from, cmp);
+  *dest = find_node(root, to, cmp);
+  if (!*src || !*dest || *src == *dest)
+  {
+    return;
+  }
+  Table< U, W >& from_tb = (*src)->val.second;
+  Table< U, W >& to_tb = (*dest)->val.second;
+  for (size_t i = 0; i < from_tb.tb.cap; ++i)
+  {
+    while (from_tb.tb.data[i])
+    {
+      List< std::pair< U, W > >* curr = from_tb.tb.data[i];
+      size_t target = h(curr->val.first) % to_tb.tb.cap;
+      from_tb.tb.data[i] = curr->next;
+      if (!from_tb.tb.data[i])
+      {
+        --from_tb.tb.size;
+      }
+      curr->next = nullptr;
+      size_t chain_len = 1;
+      if (!to_tb.tb.data[target])
+      {
+        to_tb.tb.data[target] = curr;
+        ++to_tb.tb.size;
+      }
+      else
+      {
+        List< std::pair< U, W > >* tail = to_tb.tb.data[target];
+        while (tail->next)
+        {
+          tail = tail->next;
+          ++chain_len;
+        }
+        tail->next = curr;
+        ++chain_len;
+      }
+      ++moved;
+      if (chain_len > load)
+      {
+        rebuild(to_tb, to_tb.tb.cap * 2, h);
+      }
+    }
+  }
+}
 
 // Преобразовать дерево хеш-таблиц в одну хеш-таблицу
 // Данные должны быть скопированы
